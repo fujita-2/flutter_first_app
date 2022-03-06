@@ -14,39 +14,102 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'Startup Name Generator',
-      home: RandomWords(),
+      theme: ThemeData(
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.purple,
+          foregroundColor: Colors.blue,
+        ),
+      ),
+      home: const RandomWords(),
     );
   }
 }
 
-
 class _RandomWordsState extends State<RandomWords> {
-  final _suggestions = <WordPair>[];
+  final _suggestions = <WordPair>[]; // List
+  final _saved = <WordPair>{}; // Set
   final _biggerFont = const TextStyle(fontSize: 18.0);
+  void _pushSaved() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          final tiles = _saved.map(
+            (pair) {
+              return ListTile(
+                title: Text(
+                  pair.asPascalCase,
+                  style: _biggerFont,
+                ),
+              );
+            },
+          );
+
+          final divided = tiles.isNotEmpty
+              ? ListTile.divideTiles(
+                  context: context,
+                  tiles: tiles,
+                ).toList()
+              : <Widget>[];
+
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Saved Suggestions'),
+            ),
+            body: ListView(children: divided),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Startup Name Generator'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list),
+            onPressed: _pushSaved,
+            tooltip: 'Saved Suggestions',
+          ),
+        ],
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0),
         //itemCount: 30, // ←生成数を指定することもできる。コメントにすると無限に生成される
-        itemBuilder: /*1*/ (context, i) {
-          if (i.isOdd) return const Divider(); /*2*/
+        itemBuilder: (context, i) {
+          if (i.isOdd) return const Divider();
 
-          final index = i ~/ 2; /*3*/
+          final index = i ~/ 2; //商
           if (index >= _suggestions.length) {
-            _suggestions.addAll(generateWordPairs().take(10)); /*4*/
+            _suggestions.addAll(generateWordPairs().take(10));
           }
+
+          final alreadySaved = _saved.contains(_suggestions[index]);
+
           return ListTile(
             title: Text(
               _suggestions[index].asPascalCase,
               style: _biggerFont,
             ),
+            trailing: Icon(
+              alreadySaved ? Icons.favorite : Icons.favorite_border,
+              color: alreadySaved ? Colors.red : null,
+              semanticLabel: alreadySaved ? 'Remove from saved' : 'Save',
+              // ↑semanticLabel:ユーザー補助モード（TalkBack/VoiceOverなど）でアナウンスされる。通常表示されない。
+            ),
+            onTap: () {
+              setState(() {
+                if (alreadySaved) {
+                  _saved.remove(_suggestions[index]);
+                } else {
+                  _saved.add(_suggestions[index]);
+                }
+              });
+            },
           );
         },
       ),
